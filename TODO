@@ -1,0 +1,10 @@
+For parsing UDT packets:
+    Use bitfield to determine packet type
+    Use serde or nom to parse into fields
+    Create instance of packet struct
+
+For serialising UDT packets:
+    Use bitfield to assemble packet header of appropriate type
+    Concat header+data into u8 array
+
+https://gist.github.com/porglezomp/9bd99d69926f96501682d5681511cbd4

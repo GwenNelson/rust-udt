@@ -1,0 +1,7 @@
+[package]
+name = "rust_udt"
+version = "0.1.0"
+authors = ["Gareth Nelson <gareth@garethnelson.com>"]
+
+[dependencies]
+bitfield = "0.12.1"
