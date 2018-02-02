@@ -1,3 +1,26 @@
 This file contains a few raw packet dumps used for testing the parser.
 There's also a handy python script for converting them to rust source code
 vectors.
+
+Some sample packets:
+ data_pack1.bin is a data packet with the following header fields:
+    sequence number: 218634785,
+    first packet: (10)
+    in order flag: 0
+    message number: 1
+    timestamp: 360
+    destination socket ID: 127067900
+ control_packet_handshake_1.bin is a handshake packet with the following header fields:
+    type: handshake (0)
+    additional info: 0
+    timestamp: 0
+    destination socket ID: 0
+    UDT version: 4
+    socket type: DGRAM
+    initial sequence number: 218634785
+    maximum packet size (MTU): 1500
+    maximum flow window size: 32
+    connection type: regular (1)
+    socket ID: 127067901
+    SYN cookie: 0
+    peer IP address: ::127.0.0.1 (IPv4-mapped IPv6)

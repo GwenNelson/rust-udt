@@ -22,24 +22,12 @@
  */
 
 #[macro_use]
-extern crate bitfield;
-
-#[macro_use]
 extern crate nom;
 
 use nom::be_u32;
 
+use std::net::IpAddr;
 use std::net::UdpSocket;
-
-bitfield!{
-    pub struct UdtDataPacketHeader(MSB0 [u8]);
-    impl Debug;
-    u32;
-    pub dataflag, set_dataflag: 0;
-    pub seq_num, set_seq_num: 1, 31;
-    pub pkt_pos, set_pkt_pos: 32, 35;
-    pub msg_num, set_msg_num: 36, 63;
-}
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -64,6 +52,71 @@ impl From<u8> for DataSeqType {
 }
 
 #[derive(Debug)]
+#[derive(PartialEq)]
+pub enum UDTSockType {
+    STREAM,
+    DGRAM
+}
+
+#[derive(Debug)]
+#[derive(PartialEq)]
+pub enum UDTConnType {
+    Regular,
+    Rendezvous
+}
+
+#[derive(Debug)]
+#[derive(PartialEq)]
+pub enum ControlPacketType {
+    Handshake,
+    KeepAlive,
+    Ack,
+    NegativeAck,
+    Unused,
+    Shutdown,
+    AckAck,
+    MsgDropRequest,
+    Custom,
+    Bacon, // as with DataSeqType, this is the "WTF?" value
+}
+
+impl From<u16> for ControlPacketType {
+     fn from(controlpackettype: u16) -> ControlPacketType {
+        match controlpackettype {
+           0x0    => ControlPacketType::Handshake,
+           0x1    => ControlPacketType::KeepAlive,
+           0x2    => ControlPacketType::Ack,
+           0x3    => ControlPacketType::NegativeAck,
+           0x4    => ControlPacketType::Unused,
+           0x5    => ControlPacketType::Shutdown,
+           0x6    => ControlPacketType::AckAck,
+           0x7    => ControlPacketType::MsgDropRequest,
+           0x7FFF => ControlPacketType::Custom,
+           _      => ControlPacketType::Bacon,
+        }
+     }
+}
+
+// the below is not the standard "rusty" way to do things, I know
+// it's here for a reason
+#[derive(Debug)]
+pub enum ControlPacketInfo {
+    Handshake {
+        UDTVersion: u32,
+        SockType: UDTSockType,
+        InitialSeqNo: u32,
+        MTU: u32,
+        MaxFlowWindow: u32,
+        ConnType: UDTConnType,
+        SocketID: u32,
+        SynCookie: u32,
+        PeerIP: IpAddr,
+    },
+    Bacon, // placeholder/WTF value
+}
+
+
+#[derive(Debug)]
 pub struct UDTDataPacketHeader {
     pub seq_no: u32,
     pub seq_type: DataSeqType,
@@ -73,14 +126,19 @@ pub struct UDTDataPacketHeader {
     pub dest_socket_id: u32,
 }
 
-pub enum UdtSockType {
-    STREAM,
-    DGRAM
+#[derive(Debug)]
+pub struct UDTControlPacketHeader {
+    pub PacketType: ControlPacketType,
+    pub CustomType: u16,
+    pub AdditionalInfo: u32,
+    pub timestamp: u32,
+    pub dest_socket_id: u32,
+    pub control_info: ControlPacketInfo,
 }
 
 pub struct UDTSOCKET {
     raw_sock: UdpSocket,
-    sock_type: UdtSockType,
+    sock_type: UDTSockType,
 }
 
 named!(pub parse_data_packet_header<&[u8], UDTDataPacketHeader>, do_parse!(
@@ -98,6 +156,21 @@ named!(pub parse_data_packet_header<&[u8], UDTDataPacketHeader>, do_parse!(
         })
 ));
 
+named!(pub parse_control_packet_header<&[u8], UDTControlPacketHeader>, do_parse!(
+        controlflag_and_type:  bits!(tuple!(take_bits!(u8,1), take_bits!(u16,15), take_bits!(u16,16))) >>
+        additional_info_field: bits!(take_bits!(u32,29)) >>
+        timestamp_val:         be_u32 >>
+        id_val:                be_u32 >>
+        (UDTControlPacketHeader {
+           PacketType: ControlPacketType::from(controlflag_and_type.1),
+           CustomType: controlflag_and_type.2,
+           AdditionalInfo: additional_info_field,
+           timestamp: timestamp_val,
+           dest_socket_id: id_val,
+           control_info: ControlPacketInfo::Bacon,
+        })
+));
+
 pub fn startup() -> u16 {
     return 0;
 }
@@ -106,7 +179,7 @@ pub fn cleanup() -> u16 {
     return 0;
 }
 
-pub fn socket(sock_type: UdtSockType, bind_addr: String) -> UDTSOCKET {
+pub fn socket(sock_type: UDTSockType, bind_addr: String) -> UDTSOCKET {
     let raw = UdpSocket::bind(bind_addr).unwrap();
     let retval: UDTSOCKET = UDTSOCKET { raw_sock: raw, sock_type: sock_type};
     return retval;
