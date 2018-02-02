@@ -7,4 +7,5 @@ For serialising UDT packets:
     Use bitfield to assemble packet header of appropriate type
     Concat header+data into u8 array
 
+http://siciarz.net/24-days-rust-nom-part-2/
 https://gist.github.com/porglezomp/9bd99d69926f96501682d5681511cbd4
