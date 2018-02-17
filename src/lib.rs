@@ -26,7 +26,7 @@ extern crate nom;
 
 use nom::be_u32;
 
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::net::UdpSocket;
 
 #[derive(Debug)]
@@ -156,7 +156,7 @@ named!(pub parse_data_packet_header<&[u8], UDTDataPacketHeader>, do_parse!(
         })
 ));
 
-named!(pub parse_control_packet_header<&[u8], UDTControlPacketHeader>, do_parse!(
+named!(pub parse_control_packet_header_a<&[u8], UDTControlPacketHeader>, do_parse!(
         controlflag_and_type:  bits!(tuple!(take_bits!(u8,1), take_bits!(u16,15), take_bits!(u16,16))) >>
         additional_info_field: bits!(take_bits!(u32,29)) >>
         timestamp_val:         be_u32 >>
@@ -177,6 +177,36 @@ pub fn startup() -> u16 {
 
 pub fn cleanup() -> u16 {
     return 0;
+}
+
+pub fn parse_control_packet_header(data: &[u8]) -> UDTControlPacketHeader {
+    let parsed_header: UDTControlPacketHeader = parse_control_packet_header_a(data).to_result().unwrap();
+    match parsed_header.PacketType {
+          ref Handshake => {
+              let parsed_handshake: UDTControlPacketHeader = parse_control_packet_header_a(data).to_result().unwrap(); // this is unbelievably dumb, blame rust's move semantics, my C++ background and rushed development
+              return UDTControlPacketHeader {
+                    PacketType: parsed_handshake.PacketType,
+                    CustomType: parsed_handshake.CustomType,
+                    AdditionalInfo: parsed_handshake.AdditionalInfo,
+                    timestamp: parsed_handshake.timestamp,
+                    dest_socket_id: parsed_handshake.dest_socket_id,
+                    control_info: ControlPacketInfo::Handshake {
+                        UDTVersion: 0,
+                        SockType: UDTSockType::DGRAM,
+                        InitialSeqNo: 0,
+                        MTU: 0,
+                        MaxFlowWindow: 0,
+                        ConnType: UDTConnType::Regular,
+                        SocketID: 0,
+                        SynCookie: 0,
+                        PeerIP: IpAddr::V4(Ipv4Addr::new(127,0,0,1)), 
+                   }
+               }
+          },
+          _ => {
+          },
+    }
+    return parsed_header;
 }
 
 pub fn socket(sock_type: UDTSockType, bind_addr: String) -> UDTSOCKET {
