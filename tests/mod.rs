@@ -32,7 +32,7 @@ fn parse_control_packet() {
    assert_eq!(parsed_header.AdditionalInfo,0);
    assert_eq!(parsed_header.timestamp,0);
    assert_eq!(parsed_header.dest_socket_id,0);
-   let localhost_v6 = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
+   let localhost_v6 = IpAddr::V6(Ipv6Addr::new(0x100, 0x7f, 0, 0, 0x0, 0x0, 0x0, 0x0));
    assert_eq!(parsed_header.control_info, rust_udt::ControlPacketInfo::Handshake { UDTVersion:    4,
                                                                                    SockType:      rust_udt::UDTSockType::DGRAM,
                                                                                    InitialSeqNo:  218634785,
