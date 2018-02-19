@@ -72,8 +72,8 @@ impl From<u32> for UDTSockType {
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub enum UDTConnType {
-    Regular,
     Rendezvous,
+    Regular,
     Unknown
 }
 
@@ -81,8 +81,8 @@ pub enum UDTConnType {
 impl From<u32> for UDTConnType {
      fn from(udtconntype: u32) -> UDTConnType {
         match(udtconntype) {
-           0x0 => UDTConnType::Regular,
-           0x1 => UDTConnType::Rendezvous,
+           0x0 => UDTConnType::Rendezvous,
+           0x1 => UDTConnType::Regular,
            _   => UDTConnType::Unknown
         }
      }
