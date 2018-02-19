@@ -112,6 +112,28 @@ pub enum ControlPacketInfo {
         SynCookie: u32,
         PeerIP: IpAddr,
     },
+    KeepAlive,
+    Ack {
+        SeqNo: u32,
+        RTT: u32,
+        RTTVariance: u32,
+        AvailBufferSize: u32,
+        RxPacketsPerSecond: u32,
+        LinkCapacity: u32,
+    },
+    NegativeAck {
+        LossInformation: u32,
+    },
+    Unused,
+    Shutdown {
+        SeqNo: u32,
+    },
+    AckAck {
+        MsgID: u32,
+        FirstSeqNo: u32,
+        LastSeqNo: u32,
+    },
+    Custom,
     Bacon, // placeholder/WTF value
 }
 
