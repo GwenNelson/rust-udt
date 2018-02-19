@@ -55,15 +55,39 @@ impl From<u8> for DataSeqType {
 #[derive(PartialEq)]
 pub enum UDTSockType {
     STREAM,
-    DGRAM
+    DGRAM,
+    UNKNOWN
+}
+
+impl From<u32> for UDTSockType {
+     fn from(udtsocktype: u32) -> UDTSockType {
+        match(udtsocktype) {
+           0x0 => UDTSockType::STREAM,
+           0x1 => UDTSockType::DGRAM,
+           _   => UDTSockType::UNKNOWN
+        }
+     }
 }
 
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub enum UDTConnType {
     Regular,
-    Rendezvous
+    Rendezvous,
+    Unknown
 }
+
+
+impl From<u32> for UDTConnType {
+     fn from(udtconntype: u32) -> UDTConnType {
+        match(udtconntype) {
+           0x0 => UDTConnType::Regular,
+           0x1 => UDTConnType::Rendezvous,
+           _   => UDTConnType::Unknown
+        }
+     }
+}
+
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -193,6 +217,41 @@ named!(pub parse_control_packet_header_a<&[u8], UDTControlPacketHeader>, do_pars
         })
 ));
 
+fn read_v6(buf: &[u8]) -> IpAddr {
+    let mut sixteen = [0u8; 16];
+    sixteen.copy_from_slice(&buf[..16]);
+    sixteen.into()
+}
+
+named!(addr<&[u8], IpAddr>, do_parse!(raw: take!(16) >> ( read_v6(raw.into()) )));
+
+named!(pub parse_handshake_control_info<&[u8], ControlPacketInfo>, do_parse!(
+        controlflag_and_type:  bits!(tuple!(take_bits!(u8,1), take_bits!(u16,15), take_bits!(u16,16))) >>
+        additional_info_field: bits!(take_bits!(u32,29)) >>
+        timestamp_val:         be_u32 >>
+        id_val:                be_u32 >>
+        version_val:           be_u32 >>
+        sock_type_val:         be_u32 >>
+        initial_seq_no_val:    be_u32 >>
+        mtu_val:               be_u32 >>
+        maxflow_window_val:    be_u32 >>
+        conntype_val:          be_u32 >>
+        socketid_val:          be_u32 >>
+        syncookie_val:         be_u32 >>
+        peerip_val:            addr >>
+        (ControlPacketInfo::Handshake {
+            UDTVersion:    version_val,
+            SockType:      UDTSockType::from(sock_type_val),
+            InitialSeqNo:  initial_seq_no_val,
+            MTU:           mtu_val,
+            MaxFlowWindow: maxflow_window_val,
+            ConnType:      UDTConnType::from(conntype_val),
+            SocketID:      socketid_val,
+            SynCookie:     syncookie_val,
+            PeerIP:        peerip_val,
+        })
+));
+
 pub fn startup() -> u16 {
     return 0;
 }
@@ -212,7 +271,8 @@ pub fn parse_control_packet_header(data: &[u8]) -> UDTControlPacketHeader {
                     AdditionalInfo: parsed_handshake.AdditionalInfo,
                     timestamp: parsed_handshake.timestamp,
                     dest_socket_id: parsed_handshake.dest_socket_id,
-                    control_info: ControlPacketInfo::Handshake {
+                    control_info: parse_handshake_control_info(data).to_result().unwrap(),
+/*ControlPacketInfo::Handshake {
                         UDTVersion: 0,
                         SockType: UDTSockType::DGRAM,
                         InitialSeqNo: 0,
@@ -222,7 +282,7 @@ pub fn parse_control_packet_header(data: &[u8]) -> UDTControlPacketHeader {
                         SocketID: 0,
                         SynCookie: 0,
                         PeerIP: IpAddr::V4(Ipv4Addr::new(127,0,0,1)), 
-                   }
+                   }*/
                }
           },
           _ => {
