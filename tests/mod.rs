@@ -1,5 +1,7 @@
 extern crate rust_udt;
 
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+
 #[test]
 fn startup_shutdown() {
    let r: u16 = rust_udt::startup();
@@ -30,6 +32,15 @@ fn parse_control_packet() {
    assert_eq!(parsed_header.AdditionalInfo,0);
    assert_eq!(parsed_header.timestamp,0);
    assert_eq!(parsed_header.dest_socket_id,0);
-
+   let localhost_v6 = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
+   assert_eq!(parsed_header.control_info, rust_udt::ControlPacketInfo::Handshake { UDTVersion:    4,
+                                                                                   SockType:      rust_udt::UDTSockType::DGRAM,
+                                                                                   InitialSeqNo:  218634785,
+                                                                                   MTU:           1500,
+                                                                                   MaxFlowWindow: 32,
+                                                                                   ConnType:      rust_udt::UDTConnType::Regular,
+                                                                                   SocketID:      127067901,
+                                                                                   SynCookie:     0,
+                                                                                   PeerIP:        localhost_v6});
    println!("{:?}", parsed_header);
 }

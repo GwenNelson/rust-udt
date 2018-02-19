@@ -124,6 +124,7 @@ impl From<u16> for ControlPacketType {
 // the below is not the standard "rusty" way to do things, I know
 // it's here for a reason
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub enum ControlPacketInfo {
     Handshake {
         UDTVersion: u32,
